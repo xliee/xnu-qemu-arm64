@@ -99,8 +99,8 @@ int32_t qc_handle_bind(CPUState *cpu, int32_t sckt, struct sockaddr *g_addr,
                             sizeof(addr), 0);
 
         if ((retval = bind(guest_svcs_fds[sckt], (struct sockaddr *) &addr,
-                           addrlen)) < 0) {
-            guest_svcs_errno = errno;
+                           addrlen) < 0)) {
+            guest_svcs_errno = darwin_error(errno);
         } else {
             cpu_memory_rw_debug(cpu, (target_ulong) g_addr, (uint8_t*) &addr,
                                 sizeof(addr), 1);
