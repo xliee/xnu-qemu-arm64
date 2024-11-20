@@ -109,6 +109,9 @@ int qemu_mprotect_none(void *addr, size_t size)
 {
 #ifdef _WIN32
     return qemu_mprotect__osdep(addr, size, PAGE_NOACCESS);
+#elif defined(__APPLE__) && defined(__arm64__)
+ /* Workaround mprotect (RWX->NONE) issue on Big Sur 11.2 */
+ return 0;
 #else
     return qemu_mprotect__osdep(addr, size, PROT_NONE);
 #endif
@@ -546,4 +549,26 @@ writev(int fd, const struct iovec *iov, int iov_cnt)
 {
     return readv_writev(fd, iov, iov_cnt, true);
 }
+#endif
+
+#if defined(__APPLE__) && defined(MAC_OS_VERSION_11_0)
+static inline void qemu_thread_jit_write_protect(bool enabled)
+{
+    if (pthread_jit_write_protect_supported_np()) {
+        pthread_jit_write_protect_np(enabled);
+    }
+}
+
+void qemu_thread_jit_execute(void)
+{
+    qemu_thread_jit_write_protect(true);
+}
+
+void qemu_thread_jit_write(void)
+{
+    qemu_thread_jit_write_protect(false);
+}
+#else
+void qemu_thread_jit_write(void) {}
+void qemu_thread_jit_execute(void) {}
 #endif
